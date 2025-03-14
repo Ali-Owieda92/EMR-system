@@ -43,3 +43,35 @@ export const loginUser = async (req, res) => {
         res.status(500).json({ message: "Server error", error });
     }
 };
+
+
+// ✅ Logout - Remove Token from Active Sessions
+export const logoutUser = async (req, res) => {
+try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Remove the current token from the user's tokens array
+    user.tokens = user.tokens.filter(t => t.token !== req.token);
+    await user.save();
+
+    res.json({ message: "Logged out successfully" });
+} catch (error) {
+    res.status(500).json({ message: "Server error", error });
+}
+};
+
+// ✅ Logout from All Devices (Clear all tokens)
+export const logoutAllDevices = async (req, res) => {
+try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.tokens = []; // Clear all session tokens
+    await user.save();
+
+    res.json({ message: "Logged out from all devices" });
+} catch (error) {
+    res.status(500).json({ message: "Server error", error });
+}
+}; 

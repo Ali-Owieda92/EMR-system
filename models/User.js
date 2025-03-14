@@ -8,7 +8,7 @@ const userSchema = new mongoose.Schema({
     role: { type: String, enum: ["doctor", "patient", "admin"], required: true },
     specialization: { type: String },
     gender: { type: String, enum: ["male", "female"] },
-    date_of_birth: { type: Date },
+    date_of_birth: { type: Date, default: Date.now() },
 }, { timestamps: true });
 
 userSchema.pre("save", async function (next) {
