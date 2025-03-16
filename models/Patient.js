@@ -5,7 +5,7 @@ const patientSchema = new mongoose.Schema({
     chronic_diseases: [{ type: String }],
     blood_type: { type: String },
     contact_info: {
-        phone: { type: String },
+        phone: { type: String, require: true },
         address: { type: String },
     },
     medical_history: [
