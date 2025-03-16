@@ -1,9 +1,10 @@
 import Patient from "../models/Patient.js";
 import User from "../models/User.js";
 
-// ✅ Create a new patient
+// Create a new patient
 export const createPatient = async (req, res) => {
-    const { user_id, chronic_diseases, blood_type, contact_info } = req.body;
+    const user_id = req.user._id;
+    const {chronic_diseases, blood_type, contact_info } = req.body;
 
     try {
         const user = await User.findById(user_id);
@@ -20,7 +21,7 @@ export const createPatient = async (req, res) => {
     }
 };
 
-// ✅ Get all patients (For doctors/admins)
+// Get all patients (For doctors/admins)
 export const getAllPatients = async (req, res) => {
     try {
         const patients = await Patient.find().populate("user_id", "name email gender date_of_birth");
@@ -30,7 +31,7 @@ export const getAllPatients = async (req, res) => {
     }
 };
 
-// ✅ Get a single patient by ID
+// Get a single patient by ID
 export const getPatientById = async (req, res) => {
     try {
         const patient = await Patient.findById(req.params.id).populate("user_id", "name email gender date_of_birth");
@@ -42,7 +43,7 @@ export const getPatientById = async (req, res) => {
     }
 };
 
-// ✅ Update patient details
+// Update patient details
 export const updatePatient = async (req, res) => {
     try {
         const patient = await Patient.findById(req.params.id);
@@ -57,7 +58,7 @@ export const updatePatient = async (req, res) => {
     }
 };
 
-// ✅ Delete a patient record
+// Delete a patient record
 export const deletePatient = async (req, res) => {
     try {
         const patient = await Patient.findById(req.params.id);
