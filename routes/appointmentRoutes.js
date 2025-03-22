@@ -11,11 +11,10 @@ import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/", protect, bookAppointment); // Book appointment
-router.get("/", protect, getAllAppointments); // Get all appointments
-router.get("/patient/:patientId", protect, getPatientAppointments); // Get patient appointments
-router.get("/doctor/:doctorId", protect, getDoctorAppointments); // Get doctor appointments
-router.put("/:id", protect, updateAppointmentStatus); // Update appointment status
-router.delete("/:id", protect, deleteAppointment); // Delete appointment
+router.post("/", protect, authorize("patient"), bookAppointment); // ✅ فقط المرضى يمكنهم حجز موعد
+router.get("/", protect, authorize("admin", "doctor"), getAllAppointments); // ✅ فقط الأطباء والإداريين يمكنهم رؤية كل المواعيد
+router.get("/patient/:patientId", protect, authorize("patient", "admin"), getPatientAppointments); // ✅ المريض أو الأدمن فقط
+router.get("/doctor/:doctorId", protect, authorize("doctor", "admin"), getDoctorAppointments); // ✅ الطبيب أو الأدمن فقط
+router.put("/:id", protect, authorize("doctor", "admin"), updateAppointmentStatus); // ✅ الطبيب أو الأدمن فقط يمكنهم تحديث الحالة
+router.delete("/:id", protect, authorize("admin"), deleteAppointment); // ✅ فقط الأدمن يمكنه حذف موعد
 
-export default router;

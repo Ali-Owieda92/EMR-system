@@ -9,7 +9,7 @@ const userSchema = new mongoose.Schema({
     specialization: { type: String },
     profilePhoto: { type: String, default: "default.jpg" },
     gender: { type: String, enum: ["male", "female"] },
-    date_of_birth: { type: Date, default: Date.now() },
+    date_of_birth: { type: Date},
 }, { timestamps: true });
 
 userSchema.pre("save", async function (next) {

@@ -12,6 +12,10 @@ export const bookAppointment = async (req, res) => {
         if (!patient || patient.role !== "patient") return res.status(404).json({ message: "Patient not found" });
         if (!doctor || doctor.role !== "doctor") return res.status(404).json({ message: "Doctor not found" });
 
+        // ✅ منع حجز موعد إذا كان الطبيب لديه موعد بنفس التاريخ والوقت
+        const existingAppointment = await Appointment.findOne({ doctor_id, date, time });
+        if (existingAppointment) return res.status(400).json({ message: "Doctor is not available at this time" });
+
         const newAppointment = new Appointment({ patient_id, doctor_id, date, time, reason });
         await newAppointment.save();
 
@@ -20,6 +24,7 @@ export const bookAppointment = async (req, res) => {
         res.status(500).json({ message: "Server error", error });
     }
 };
+
 
 // ✅ Get all appointments (For doctors/admins)
 export const getAllAppointments = async (req, res) => {
