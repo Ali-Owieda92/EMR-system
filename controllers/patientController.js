@@ -1,16 +1,9 @@
 import Patient from "../models/Patient.js";
 import User from "../models/User.js";
 
-<<<<<<< Updated upstream
-// Create a new patient
-export const createPatient = async (req, res) => {
-    const user_id = req.user._id;
-    const {chronic_diseases, blood_type, contact_info } = req.body;
-=======
 // Create a new patient 
 export const createPatient = async (req, res) => {
     const { name, email, phone, chronic_diseases, blood_type, contact_info } = req.body;
->>>>>>> Stashed changes
 
     try {
         // السماح فقط للأطباء أو المسؤولين بإضافة المرضى
@@ -51,10 +44,6 @@ export const createPatient = async (req, res) => {
     }
 };
 
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
 // Get all patients (For doctors/admins)
 export const getAllPatients = async (req, res) => {
     try {
@@ -77,10 +66,6 @@ export const getAllPatients = async (req, res) => {
     }
 };
 
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
 // Get a single patient by ID
 export const getPatientById = async (req, res) => {
     try {
@@ -98,10 +83,6 @@ export const getPatientById = async (req, res) => {
     }
 };
 
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
 // Update patient details
 export const updatePatient = async (req, res) => {
     try {
@@ -134,7 +115,6 @@ export const updatePatient = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: "Server error", error });
     }
-<<<<<<< Updated upstream
 };
 
 // Delete a patient record
@@ -148,6 +128,4 @@ export const deletePatient = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: "Server error", error });
     }
-=======
->>>>>>> Stashed changes
 };

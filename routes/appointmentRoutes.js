@@ -1,4 +1,6 @@
 import express from "express";
+import { protect, authorize } from "../middleware/authMiddleware.js";
+
 import {
     bookAppointment,
     getAllAppointments,
@@ -7,7 +9,6 @@ import {
     updateAppointmentStatus,
     deleteAppointment
 } from "../controllers/appointmentController.js";
-import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -18,3 +19,4 @@ router.get("/doctor/:doctorId", protect, authorize("doctor", "admin"), getDoctor
 router.put("/:id", protect, authorize("doctor", "admin"), updateAppointmentStatus); // ✅ الطبيب أو الأدمن فقط يمكنهم تحديث الحالة
 router.delete("/:id", protect, authorize("admin"), deleteAppointment); // ✅ فقط الأدمن يمكنه حذف موعد
 
+export default router;
