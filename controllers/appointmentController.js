@@ -4,6 +4,7 @@ import User from "../models/User.js";
 // ✅ Book an appointment
 export const bookAppointment = async (req, res) => {
     const { patient_id, doctor_id, date, time, reason } = req.body;
+    const datetime = new Date(`${date}T${time}:00`);
 
     try {
         const patient = await User.findById(patient_id);
@@ -16,7 +17,7 @@ export const bookAppointment = async (req, res) => {
         const existingAppointment = await Appointment.findOne({ doctor_id, date, time });
         if (existingAppointment) return res.status(400).json({ message: "Doctor is not available at this time" });
 
-        const newAppointment = new Appointment({ patient_id, doctor_id, date, time, reason });
+        const newAppointment = new Appointment({ patient_id, doctor_id, datetime, reason });
         await newAppointment.save();
 
         res.status(201).json({ message: "Appointment booked successfully", appointment: newAppointment });
