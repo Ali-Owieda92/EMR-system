@@ -7,7 +7,7 @@ if (!fs.existsSync(uploadPath)) {
     fs.mkdirSync(uploadPath);
 }
 
-const storage = multer.diskStorage({
+const storage = multer.memoryStorage({
     destination: (req, file, cb) => {
         cb(null, uploadPath);
     },
