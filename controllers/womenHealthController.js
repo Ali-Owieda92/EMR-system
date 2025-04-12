@@ -1,10 +1,8 @@
-import asyncHandler from "express-async-handler";
 import MenstrualCycle from "../models/MenstrualCycle.js";
 import PregnancyTracking from "../models/PregnancyTracking.js";
-import sendReminderSMS from "../utils/sendReminderSMS.js"; // لو بتبعت SMS أو تذكيرات
 
 // ✅ تسجيل مواعيد الدورة الشهرية
-export const addMenstrualCycle = asyncHandler(async (req, res) => {
+export const addMenstrualCycle = async (req, res) => {
   const { startDate, duration } = req.body;
 
   const cycle = new MenstrualCycle({
@@ -15,10 +13,10 @@ export const addMenstrualCycle = asyncHandler(async (req, res) => {
 
   const createdCycle = await cycle.save();
   res.status(201).json(createdCycle);
-});
+};
 
 // ✅ جلب بيانات الدورة والتنبؤ
-export const getMenstrualCycle = asyncHandler(async (req, res) => {
+export const getMenstrualCycle = async (req, res) => {
   const cycles = await MenstrualCycle.find({ userId: req.params.userId }).sort({ startDate: -1 });
 
   const latestCycle = cycles[0];
@@ -35,10 +33,10 @@ export const getMenstrualCycle = asyncHandler(async (req, res) => {
   }
 
   res.json({ cycles, prediction });
-});
+};
 
 // ✅ تسجيل بيانات الحمل
-export const addPregnancyTracking = asyncHandler(async (req, res) => {
+export const addPregnancyTracking = async (req, res) => {
   const { conceptionDate } = req.body;
 
   const pregnancy = new PregnancyTracking({
@@ -48,10 +46,10 @@ export const addPregnancyTracking = asyncHandler(async (req, res) => {
 
   const saved = await pregnancy.save();
   res.status(201).json(saved);
-});
+};
 
 // ✅ متابعة تطور الحمل
-export const getPregnancyTracking = asyncHandler(async (req, res) => {
+export const getPregnancyTracking = async (req, res) => {
   const tracking = await PregnancyTracking.findOne({ userId: req.params.userId });
 
   if (!tracking) {
@@ -66,14 +64,5 @@ export const getPregnancyTracking = asyncHandler(async (req, res) => {
   dueDate.setDate(dueDate.getDate() + 280); // 40 أسبوع
 
   res.json({ ...tracking._doc, week: diffInWeeks, dueDate });
-});
+};
 
-// ✅ إرسال تذكيرات
-export const sendWomenReminders = asyncHandler(async (req, res) => {
-  const { message, phoneNumber } = req.body;
-
-  // Function ممكن تبعتها SMS أو Email أو Notification
-  const result = await sendReminderSMS(phoneNumber, message);
-
-  res.json({ success: true, result });
-});

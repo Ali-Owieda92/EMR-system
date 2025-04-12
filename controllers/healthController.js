@@ -1,8 +1,7 @@
 import HealthTracking from "../models/HealthTracking.js";
-import asyncHandler from "express-async-handler";
 
 // ✅ POST /health-tracking/add ➝ تسجيل بيانات صحية
-export const addHealthData = asyncHandler(async (req, res) => {
+export const addHealthData = async (req, res) => {
   const { bloodPressure, bloodSugar, heartRate, weight } = req.body;
 
   const healthRecord = new HealthTracking({
@@ -15,16 +14,16 @@ export const addHealthData = asyncHandler(async (req, res) => {
 
   const createdRecord = await healthRecord.save();
   res.status(201).json(createdRecord);
-});
+};
 
 // ✅ GET /health-tracking/:userId ➝ جلب جميع البيانات الصحية للمستخدم
-export const getHealthData = asyncHandler(async (req, res) => {
+export const getHealthData = async (req, res) => {
   const records = await HealthTracking.find({ userId: req.params.userId }).sort({ createdAt: -1 });
   res.json(records);
-});
+};
 
 // ✅ GET /health-tracking/graph/:userId ➝ رسم بياني لتطور الحالة الصحية
-export const getHealthGraph = asyncHandler(async (req, res) => {
+export const getHealthGraph = async (req, res) => {
   const records = await HealthTracking.find({ userId: req.params.userId }).sort({ createdAt: 1 });
 
   const graphData = records.map(record => ({
@@ -36,10 +35,10 @@ export const getHealthGraph = asyncHandler(async (req, res) => {
   }));
 
   res.json(graphData);
-});
+};
 
 // ✅ PUT /health-tracking/update/:recordId ➝ تعديل بيانات صحية مسجلة
-export const updateHealthData = asyncHandler(async (req, res) => {
+export const updateHealthData = async (req, res) => {
   const record = await HealthTracking.findById(req.params.recordId);
 
   if (!record) {
@@ -59,10 +58,10 @@ export const updateHealthData = asyncHandler(async (req, res) => {
 
   const updatedRecord = await record.save();
   res.json(updatedRecord);
-});
+};
 
 // ✅ DELETE /health-tracking/delete/:recordId ➝ حذف بيانات صحية معينة
-export const deleteHealthData = asyncHandler(async (req, res) => {
+export const deleteHealthData = async (req, res) => {
   const record = await HealthTracking.findById(req.params.recordId);
 
   if (!record) {
@@ -77,4 +76,4 @@ export const deleteHealthData = asyncHandler(async (req, res) => {
 
   await record.remove();
   res.json({ message: "Health record deleted successfully" });
-});
+};
