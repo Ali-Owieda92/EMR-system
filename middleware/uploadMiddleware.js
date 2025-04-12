@@ -1,11 +1,7 @@
 import multer from "multer";
 import path from "path";
-import fs from "fs";
 
-const uploadPath = "uploads";
-if (!fs.existsSync(uploadPath)) {
-    fs.mkdirSync(uploadPath);
-}
+
 
 const storage = multer.memoryStorage({
     destination: (req, file, cb) => {
