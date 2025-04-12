@@ -21,7 +21,6 @@ export const protect = async (req, res, next) => {
     }
 };
 
-// ✅ Middleware للتحقق من صلاحيات المستخدم
 export const authorize = (...roles) => {
     return (req, res, next) => {
         if (!req.user || !roles.includes(req.user.role)) {
