@@ -1,30 +1,29 @@
 {
-  "name": "emr-backend",
+  "name": "healthcare-api",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Healthcare API for Electronic Medical Records",
+  "main": "server.js",
   "type": "module",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "bcryptjs": "^3.0.2",
+    "bcryptjs": "^2.4.3",
     "cloudinary": "^1.41.3",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
-    "express": "^4.21.2",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
     "express-async-handler": "^1.2.0",
-    "firebase-admin": "^13.2.0",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.11.0",
-    "morgan": "^1.10.0",
+    "mongoose": "^8.0.4",
     "multer": "^1.4.5-lts.1",
     "multer-storage-cloudinary": "^4.0.0",
-    "nodemailer": "^6.10.1",
-    "nodemon": "^3.1.9"
+    "nodemailer": "^6.9.8",
+    "pdfkit": "^0.14.0",
+    "qrcode": "^1.5.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
   }
 }

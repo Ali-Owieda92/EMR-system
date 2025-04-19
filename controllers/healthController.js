@@ -1,7 +1,9 @@
+// Updated controllers/healthController.js
 import HealthTracking from "../models/HealthTracking.js";
+import asyncHandler from 'express-async-handler';
 
-// ✅ POST /health-tracking/add ➝ تسجيل بيانات صحية
-export const addHealthData = async (req, res) => {
+// Add health data
+export const addHealthData = asyncHandler(async (req, res) => {
   const { bloodPressure, bloodSugar, heartRate, weight } = req.body;
 
   const healthRecord = new HealthTracking({
@@ -14,31 +16,61 @@ export const addHealthData = async (req, res) => {
 
   const createdRecord = await healthRecord.save();
   res.status(201).json(createdRecord);
-};
+});
 
-// ✅ GET /health-tracking/:userId ➝ جلب جميع البيانات الصحية للمستخدم
-export const getHealthData = async (req, res) => {
+// Get all health data for a user
+export const getHealthData = asyncHandler(async (req, res) => {
+  // Ensure user can only access their own data unless they're a doctor or admin
+  if (req.params.userId !== req.user._id.toString() && 
+      req.user.role !== 'doctor' && 
+      req.user.role !== 'admin') {
+    res.status(403);
+    throw new Error("Not authorized to access this data");
+  }
+
   const records = await HealthTracking.find({ userId: req.params.userId }).sort({ createdAt: -1 });
   res.json(records);
-};
+});
 
-// ✅ GET /health-tracking/graph/:userId ➝ رسم بياني لتطور الحالة الصحية
-export const getHealthGraph = async (req, res) => {
-  const records = await HealthTracking.find({ userId: req.params.userId }).sort({ createdAt: 1 });
+// Get graph data for health metrics
+export const getHealthGraph = asyncHandler(async (req, res) => {
+  // Ensure user can only access their own data unless they're a doctor or admin
+  if (req.params.userId !== req.user._id.toString() && 
+      req.user.role !== 'doctor' && 
+      req.user.role !== 'admin') {
+    res.status(403);
+    throw new Error("Not authorized to access this data");
+  }
 
-  const graphData = records.map(record => ({
-    date: record.createdAt,
-    bloodPressure: record.bloodPressure,
-    bloodSugar: record.bloodSugar,
-    heartRate: record.heartRate,
-    weight: record.weight,
-  }));
+  // Get data from the past 30 days by default
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 30);
+
+  const records = await HealthTracking.find({
+    userId: req.params.userId,
+    createdAt: { $gte: startDate, $lte: endDate }
+  }).sort({ createdAt: 1 });
+
+  // Format data for graphs
+  const graphData = {
+    labels: records.map(record => record.createdAt.toISOString().split('T')[0]), // Date strings
+    bloodPressure: records.map(record => {
+      if (!record.bloodPressure) return null;
+      // Parse values like "120/80" into [120, 80]
+      const [systolic, diastolic] = record.bloodPressure.split('/').map(Number);
+      return { systolic, diastolic };
+    }),
+    bloodSugar: records.map(record => record.bloodSugar),
+    heartRate: records.map(record => record.heartRate),
+    weight: records.map(record => record.weight)
+  };
 
   res.json(graphData);
-};
+});
 
-// ✅ PUT /health-tracking/update/:recordId ➝ تعديل بيانات صحية مسجلة
-export const updateHealthData = async (req, res) => {
+// Update health record
+export const updateHealthData = asyncHandler(async (req, res) => {
   const record = await HealthTracking.findById(req.params.recordId);
 
   if (!record) {
@@ -46,8 +78,10 @@ export const updateHealthData = async (req, res) => {
     throw new Error("Health record not found");
   }
 
-  if (record.userId.toString() !== req.user._id.toString()) {
-    res.status(401);
+  // Ensure user can only update their own records
+  if (record.userId.toString() !== req.user._id.toString() && 
+      req.user.role !== 'admin') {
+    res.status(403);
     throw new Error("Not authorized to update this record");
   }
 
@@ -58,10 +92,10 @@ export const updateHealthData = async (req, res) => {
 
   const updatedRecord = await record.save();
   res.json(updatedRecord);
-};
+});
 
-// ✅ DELETE /health-tracking/delete/:recordId ➝ حذف بيانات صحية معينة
-export const deleteHealthData = async (req, res) => {
+// Delete health record
+export const deleteHealthData = asyncHandler(async (req, res) => {
   const record = await HealthTracking.findById(req.params.recordId);
 
   if (!record) {
@@ -69,11 +103,13 @@ export const deleteHealthData = async (req, res) => {
     throw new Error("Health record not found");
   }
 
-  if (record.userId.toString() !== req.user._id.toString()) {
-    res.status(401);
+  // Ensure user can only delete their own records
+  if (record.userId.toString() !== req.user._id.toString() && 
+      req.user.role !== 'admin') {
+    res.status(403);
     throw new Error("Not authorized to delete this record");
   }
 
-  await record.remove();
+  await record.deleteOne();
   res.json({ message: "Health record deleted successfully" });
-};
+});

@@ -1,33 +1,32 @@
+// Updated appointmentController.js
 import Appointment from "../models/Appointment.js";
 import User from "../models/User.js";
 import asyncHandler from 'express-async-handler';
 
-
 export const bookAppointment = asyncHandler(async (req, res) => {
-    const { doctor_id, patient_id, datetime, reason } = req.body;
+    const { doctor, patient, date, reason } = req.body;
 
-    const existingAppointment = await Appointment.findOne({ doctor_id, datetime });
+    const existingAppointment = await Appointment.findOne({ doctor, date });
     if (existingAppointment) {
         res.status(400);
         throw new Error("Doctor already has an appointment at this time");
     }
 
     const newAppointment = await Appointment.create({
-        doctor_id,
-        patient_id,
-        datetime,
+        doctor,
+        patient,
+        date,
         reason,
     });
 
     res.status(201).json(newAppointment);
 });
 
-
 export const getAllAppointments = async (req, res) => {
     try {
         const appointments = await Appointment.find()
-            .populate("patient_id", "name email")
-            .populate("doctor_id", "name specialization email");
+            .populate("patient", "name email")
+            .populate("doctor", "name specialization email");
         res.json(appointments);
     } catch (error) {
         res.status(500).json({ message: "Server error", error });
@@ -36,8 +35,8 @@ export const getAllAppointments = async (req, res) => {
 
 export const getPatientAppointments = async (req, res) => {
     try {
-        const appointments = await Appointment.find({ patient_id: req.params.patientId })
-            .populate("doctor_id", "name specialization email");
+        const appointments = await Appointment.find({ patient: req.params.patientId })
+            .populate("doctor", "name specialization email");
         res.json(appointments);
     } catch (error) {
         res.status(500).json({ message: "Server error", error });
@@ -46,8 +45,8 @@ export const getPatientAppointments = async (req, res) => {
 
 export const getDoctorAppointments = async (req, res) => {
     try {
-        const appointments = await Appointment.find({ doctor_id: req.params.doctorId })
-            .populate("patient_id", "name email");
+        const appointments = await Appointment.find({ doctor: req.params.doctorId })
+            .populate("patient", "name email");
         res.json(appointments);
     } catch (error) {
         res.status(500).json({ message: "Server error", error });

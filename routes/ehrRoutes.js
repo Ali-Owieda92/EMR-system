@@ -1,17 +1,21 @@
+// Updated routes/ehrRoutes.js
 import express from "express";
-
 import {
     getEhrByPatient,
     addEhrData,
     updateEhr,
+    downloadEhrPdf,
+    getEhrQrCode
 } from "../controllers/ehrController.js";
-import { protect } from "../middleware/authMiddleware.js";
+import { protect, authorize } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// 📂 نظام السجل الطبي الإلكتروني (EHR)
-router.get("/:patientId", protect, getEhrByPatient);              // جلب السجل الطبي الكامل لمريض معين
-router.post("/add", protect, addEhrData);                           // إضافة بيانات جديدة (مرض مزمن، أدوية، عمليات سابقة)
-router.put("/update/:patientId", protect, updateEhr);               // تحديث بيانات السجل الطبي
+// EHR routes
+router.get("/:patientId", protect, getEhrByPatient);                   // Get full EHR for a patient
+router.post("/add", protect, authorize("doctor", "admin"), addEhrData); // Add new EHR data
+router.put("/update/:patientId", protect, authorize("doctor", "admin"), updateEhr); // Update EHR
+router.get("/download/:patientId", protect, downloadEhrPdf);           // Download EHR as PDF
+router.get("/qrcode/:patientId", protect, getEhrQrCode);               // Get QR code for EHR
 
 export default router;
