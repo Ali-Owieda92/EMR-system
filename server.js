@@ -38,15 +38,15 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/doctors', doctorRoutes);
-app.use('/api/patients', patientRoutes);
-app.use('/api/appointments', appointmentRoutes);
-app.use('/api/ehr', ehrRoutes);
-app.use('/api/lab-tests', labTestRoutes);
-app.use('/api/health-tracking', healthRoutes);
-app.use('/api/women', womenHealthRoutes);
-app.use('/api/users', userRoutes);
+app.use('/auth', authRoutes);
+app.use('/doctors', doctorRoutes);
+app.use('/patients', patientRoutes);
+app.use('/appointments', appointmentRoutes);
+app.use('/ehr', ehrRoutes);
+app.use('/lab-tests', labTestRoutes);
+app.use('/health-tracking', healthRoutes);
+app.use('/women', womenHealthRoutes);
+app.use('/users', userRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
