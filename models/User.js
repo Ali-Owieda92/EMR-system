@@ -45,15 +45,20 @@ const userSchema = new mongoose.Schema({
             enum: ["doctor", "patient", "admin"], 
             required: true 
         },
+    isVerified: 
+        {
+            type: Boolean,
+            default: false
+        },
     specialization:
         { 
             type: String 
         },
-        profile_image:
-            { 
-                type: String, 
-                default: "" 
-            },
+    profile_image:
+        { 
+            type: String, 
+            default: "" 
+        },
 },
     { timestamps: true }
 );

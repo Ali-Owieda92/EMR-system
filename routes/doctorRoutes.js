@@ -1,4 +1,5 @@
 import express from "express";
+import upload from "../middleware/uploadMiddleware.js";
 import {
     createDoctor,
     getAllDoctors,
@@ -14,7 +15,7 @@ const router = express.Router();
 router.post("/create", protect, authorize("admin"), createDoctor);
 router.get("/list", getAllDoctors); // متاح للجميع للبحث
 router.get("/:doctorId", protect, authorize("admin", "doctor"), getDoctorById);
-router.put("/update/:doctorId", protect, updateDoctor);
+router.put("/update/:doctorId", protect, upload.single("profilePhoto"), updateDoctor);
 router.delete("/delete/:doctorId", protect, authorize("admin"), deleteDoctor);
 
 export default router;

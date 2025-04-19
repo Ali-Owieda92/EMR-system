@@ -2,7 +2,7 @@ export const updateUserProfile = async (req, res) => {
     try {
         const user = await User.findById(req.user._id);
         if (!user) return res.status(404).json({ message: "User not found" });
-
+        
         if (req.file) user.profilePhoto = req.file.path;
         if (req.body.name) user.name = req.body.name;
         if (req.body.gender) user.gender = req.body.gender;

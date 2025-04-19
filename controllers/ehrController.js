@@ -1,4 +1,7 @@
 import Ehr from "../models/Ehr.js";
+import Patient from "../models/Patient.js";
+import asyncHandler from 'express-async-handler';
+
 
 export const addEhr = async (req, res) => {
   try {
@@ -44,23 +47,22 @@ export const updateEhr = async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 };
-export const addEhrData = async (req, res) => {
-  const { patientId, diagnosis, medications, assigned_doctor } = req.body;
+export const addEhrData = asyncHandler(async (req, res) => {
+  const { patientId } = req.params;
+  const { doctorId, dataType, data } = req.body;
 
-  const patient = await patient.findById(patientId);
+  const patient = await Patient.findById(patientId);
   if (!patient) {
-    return res.status(404).json({ message: "Patient not found" });
+    res.status(404);
+    throw new Error("Patient not found");
   }
 
-  const newRecord = {
-    diagnosis,
-    medications,
-    assigned_doctor,
-    date: new Date(),
-  };
+  const newEhr = await EHR.create({
+    patient_id: patientId,
+    doctor_id: doctorId,
+    data_type: dataType,
+    data,
+  });
 
-  patient.medical_history.push(newRecord);
-  await patient.save();
-
-  res.status(201).json({ success: true, message: "EHR data added", data: patient.medical_history });
-};
+  res.status(201).json(newEhr);
+});

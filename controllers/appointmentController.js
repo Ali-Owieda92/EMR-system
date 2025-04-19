@@ -1,28 +1,26 @@
 import Appointment from "../models/Appointment.js";
 import User from "../models/User.js";
+import asyncHandler from 'express-async-handler';
 
-export const bookAppointment = async (req, res) => {
-    const { patient_id, doctor_id, date, time, reason } = req.body;
-    const datetime = new Date(`${date}T${time}:00`);
 
-    try {
-        const patient = await User.findById(patient_id);
-        const doctor = await User.findById(doctor_id);
+export const bookAppointment = asyncHandler(async (req, res) => {
+    const { doctor_id, patient_id, datetime, reason } = req.body;
 
-        if (!patient || patient.role !== "patient") return res.status(404).json({ message: "Patient not found" });
-        if (!doctor || doctor.role !== "doctor") return res.status(404).json({ message: "Doctor not found" });
-
-        const existingAppointment = await Appointment.findOne({ doctor_id, date, time });
-        if (existingAppointment) return res.status(400).json({ message: "Doctor is not available at this time" });
-
-        const newAppointment = new Appointment({ patient_id, doctor_id, datetime, reason });
-        await newAppointment.save();
-
-        res.status(201).json({ message: "Appointment booked successfully", appointment: newAppointment });
-    } catch (error) {
-        res.status(500).json({ message: "Server error", error });
+    const existingAppointment = await Appointment.findOne({ doctor_id, datetime });
+    if (existingAppointment) {
+        res.status(400);
+        throw new Error("Doctor already has an appointment at this time");
     }
-};
+
+    const newAppointment = await Appointment.create({
+        doctor_id,
+        patient_id,
+        datetime,
+        reason,
+    });
+
+    res.status(201).json(newAppointment);
+});
 
 
 export const getAllAppointments = async (req, res) => {

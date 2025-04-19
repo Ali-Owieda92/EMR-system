@@ -1,6 +1,9 @@
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import Patient from "../models/Patient.js";
+import Doctor from "../models/Doctor.js";// controllers/authController.js
+import sendEmail from "../utils/emailService.js"; // هننشئ الملف بعد شويه
 
 const generateToken = (id, role) => {
     return jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: "7d" });
@@ -27,6 +30,23 @@ export const registerUser = async (req, res) => {
     });
 
     await newUser.save();
+
+    if (role === "patient") {
+        await Patient.create({
+            user_id: newUser._id,
+            name: newUser.name,
+            email: newUser.email,
+            phone: newUser.phone,
+        });
+    } else if (role === "doctor") {
+        await Doctor.create({
+            user_id: newUser._id,
+            name: newUser.name,
+            email: newUser.email,
+            phone: newUser.phone,
+            specialization: newUser.specialization,
+        });
+    }
 
     const token = generateToken(newUser._id, newUser.role);
 
@@ -77,24 +97,43 @@ export const loginUser = async (req, res) => {
     }
 };
 
+
 export const forgotPassword = async (req, res) => {
-    const { identifier } = req.body;
+  const { email } = req.body;
 
-    try {
-    const user = await User.findOne({
-        $or: [{ email: identifier }, { phone: identifier }],
-    });
-
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    res.status(200).json({
-        message: "User verified. You can now reset the password.",
-        userId: user._id,
-    });
-    } catch (error) {
-    res.status(500).json({ message: "Server error", error });
+  try {
+    // 1. تأكد من وجود المستخدم
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found with this email" });
     }
+
+    // 2. أنشئ توكن مؤقت (15 دقيقة)
+    const resetToken = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "15m" }
+    );
+
+    // 3. أنشئ رابط إعادة التعيين
+    const resetLink = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`;
+
+    // 4. أرسل الإيميل للمستخدم
+    await sendEmail({
+      to: user.email,
+      subject: "Password Reset",
+      html: `<p>You requested a password reset.</p>
+             <p>Click this link to reset your password:</p>
+             <a href="${resetLink}">${resetLink}</a>`
+    });
+
+    res.status(200).json({ message: "Password reset link sent to email." });
+  } catch (err) {
+    console.error("Forgot Password Error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 };
+
 
 export const resetPassword = async (req, res) => {
     const { identifier, newPassword } = req.body;

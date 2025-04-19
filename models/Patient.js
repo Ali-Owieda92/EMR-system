@@ -19,7 +19,7 @@ const patientSchema = new mongoose.Schema({
             assigned_doctor: 
             {
                 type: mongoose.Schema.Types.ObjectId,
-                ref: "Doctor",
+                ref: "User",
             },
             medications: [{ name: String, dosage: String, duration: String }],
             date: { type: Date, default: Date.now },
