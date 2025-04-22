@@ -1,6 +1,5 @@
 // Updated appointmentController.js
 import Appointment from "../models/Appointment.js";
-import User from "../models/User.js";
 import asyncHandler from 'express-async-handler';
 
 export const bookAppointment = asyncHandler(async (req, res) => {

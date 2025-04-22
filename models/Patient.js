@@ -10,7 +10,7 @@ const patientSchema = new mongoose.Schema({
     chronic_diseases: [{ type: String }],
     blood_type: { type: String },
     contact_info: {
-        phone: { type: String, required: true },
+        phone: { type: String},
         address: { type: String },
     },
     medical_history: [

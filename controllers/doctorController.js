@@ -3,19 +3,22 @@ import User from "../models/User.js";
 
 export const createDoctor = async (req, res) => {
     try {
-        const { name, email, password, specialization, gender, date_of_birth } = req.body;
+        const { name, email, password, phone, gender, age, specialty, experience } = req.body;
 
+        // Check for existing user
         let existingUser = await User.findOne({ email });
         if (existingUser) return res.status(400).json({ message: "Doctor already exists" });
 
+        // Create new user
         const newUser = new User({
             name,
             email,
             password,
+            phone,
             role: "doctor",
-            specialization,
+            specialty,
             gender,
-            date_of_birth,
+            age, // save age, or add date_of_birth to schema if needed
         });
 
         if (req.file) {
@@ -24,9 +27,11 @@ export const createDoctor = async (req, res) => {
 
         await newUser.save();
 
+        // Create doctor entry
         const newDoctor = new Doctor({
-            user_id: newUser._id,
-            specialization,
+            user: newUser._id,
+            specialty,
+            experience,
         });
 
         await newDoctor.save();
@@ -39,7 +44,7 @@ export const createDoctor = async (req, res) => {
 
 export const getAllDoctors = async (req, res) => {
     try {
-        const doctors = await Doctor.find().populate("user_id", "name email profile_image specialization gender date_of_birth");
+        const doctors = await Doctor.find().populate("user_id", "name email profile_image specialty gender age");
         res.json(doctors);
     } catch (error) {
         res.status(500).json({ message: "Server error", error });
@@ -64,15 +69,15 @@ export const updateDoctor = async (req, res) => {
 
         const user = doctor.user_id;
 
-        const { name, email, gender, date_of_birth, specialization, phone, bio } = req.body;
+        const { name, email, gender, age, specialty, phone, bio } = req.body;
 
         if (name) user.name = name;
         if (email) user.email = email;
         if (gender) user.gender = gender;
-        if (date_of_birth) user.date_of_birth = date_of_birth;
+        if (age) user.age = age;
         if (req.file?.filename) user.profile_image = req.file.filename;
 
-        if (specialization) doctor.specialization = specialization;
+        if (specialty) doctor.specialty = specialty;
         if (phone) doctor.phone = phone;
         if (bio) doctor.bio = bio;
 

@@ -2,23 +2,36 @@ import Patient from "../models/Patient.js";
 import User from "../models/User.js";
 
 export const createPatient = async (req, res) => {
-    const { name, email, phone, chronic_diseases, blood_type, contact_info } = req.body;
+    const { name, email, phone, gender, chronic_diseases, blood_type, city } = req.body;
 
     try {
+        // 🔒 Role check
         if (req.user.role !== "doctor" && req.user.role !== "admin") {
             return res.status(403).json({ message: "Access denied. Only doctors and admins can add patients." });
         }
 
+        // 🔍 Check if user exists by email
         let user = await User.findOne({ email });
 
+        if (user && (!user.gender || !user.phone)) {
+            return res.status(400).json({
+                message: "User already exists but missing required data. Please provide full user info or use another email."
+            });
+        }
+
+        // ❌ If not, create a new user with role = patient
         if (!user) {
             user = new User({
                 name,
                 email,
-                password: "12345678",
+                phone,       
+                gender,      
+                city,        
+                password: "12345678", 
                 role: "patient",
             });
 
+            // 📸 Attach uploaded image if available
             if (req.file) {
                 user.profile_image = req.file.filename;
             }
@@ -26,7 +39,7 @@ export const createPatient = async (req, res) => {
             await user.save();
         }
 
-        let patientExists = await Patient.findOne({ user_id: user._id });
+        const patientExists = await Patient.findOne({ user_id: user._id });
         if (patientExists) {
             return res.status(400).json({ message: "Patient already exists" });
         }
@@ -35,13 +48,18 @@ export const createPatient = async (req, res) => {
             user_id: user._id,
             chronic_diseases,
             blood_type,
-            contact_info: { phone, address: contact_info?.address },
+            contact_info: {
+                phone,
+                address: city,
+            },
         });
 
         await newPatient.save();
 
         res.status(201).json({ message: "Patient record created successfully", patient: newPatient });
+
     } catch (error) {
+        console.error("Error creating patient:", error);
         res.status(500).json({ message: "Server error", error });
     }
 };

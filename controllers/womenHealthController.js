@@ -2,7 +2,6 @@
 import MenstrualCycle from "../models/MenstrualCycle.js";
 import PregnancyTracking from "../models/PregnancyTracking.js";
 import User from "../models/User.js";
-import sendEmail from "../utils/emailService.js";
 
 // Track menstrual cycle
 export const addMenstrualCycle = async (req, res) => {
@@ -157,16 +156,7 @@ export const createReminder = async (req, res) => {
     const { type, date, message } = req.body;
     
     const user = await User.findById(req.user._id);
-    
-    // Send email reminder
-    await sendEmail({
-      to: user.email,
-      subject: `Reminder: ${type}`,
-      html: `<p>Hello ${user.name},</p>
-              <p>This is a reminder about your ${type} on ${new Date(date).toLocaleDateString()}.</p>
-              <p>${message || ''}</p>
-              <p>Best regards,<br>EMR System</p>`
-    });
+  
     
     res.status(200).json({ message: "Reminder set successfully" });
   } catch (error) {
