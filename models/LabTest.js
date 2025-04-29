@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const labTestSchema = mongoose.Schema(
     {
-        patientId: {
+        patient: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Patient',
             required: true,
@@ -21,15 +21,12 @@ const labTestSchema = mongoose.Schema(
         },
         file: {
             type: String,
-            required: false,
         },
         remarks: {
             type: String,
-            required: false,
         },
         retestRequired: {
             type: Boolean,
-            required: false,
             default: false,
         },
     },

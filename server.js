@@ -6,6 +6,9 @@ import connectDB from './config/db.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+// Load environment variables
+dotenv.config();
+
 // Route imports
 import authRoutes from './routes/authRoutes.js';
 import doctorRoutes from './routes/doctorRoutes.js';
@@ -17,8 +20,6 @@ import healthRoutes from './routes/healthRoutes.js';
 import womenHealthRoutes from './routes/womenHealthRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 
-// Load environment variables
-dotenv.config();
 
 // Connect to database
 connectDB();
@@ -62,6 +63,7 @@ app.use((err, req, res, next) => {
         stack: process.env.NODE_ENV === 'production' ? null : err.stack,
     });
 });
+console.log(process.env.EMAIL_USER, process.env.EMAIL_PASS, process.env.TWILIO_SID);
 
 // Start server
 const PORT = process.env.PORT || 5000;

@@ -44,7 +44,7 @@ export const createDoctor = async (req, res) => {
 
 export const getAllDoctors = async (req, res) => {
     try {
-        const doctors = await Doctor.find().populate("user_id", "name email profile_image specialty gender age");
+        const doctors = await Doctor.find()("user_id", "name email profile_image specialty gender age");
         res.json(doctors);
     } catch (error) {
         res.status(500).json({ message: "Server error", error });

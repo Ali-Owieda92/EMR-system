@@ -1,13 +1,13 @@
-import nodemailer from "nodemailer";
-
 export const sendEmail = async ({ to, subject, text }) => {
     const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-        user: process.env.EMAIL_USER, // جيميلك
-        pass: process.env.EMAIL_PASS, // App password من جوجل
-    },
-});
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
+        auth: {
+            user: process.env.EMAIL_USER, 
+            pass: process.env.EMAIL_PASS,
+        },
+    });
 
     const mailOptions = {
         from: `"EMR System" <${process.env.EMAIL_USER}>`,
@@ -16,5 +16,11 @@ export const sendEmail = async ({ to, subject, text }) => {
         text,
     };
 
-    await transporter.sendMail(mailOptions);
+    try {
+        await transporter.sendMail(mailOptions);
+        console.log('Email sent successfully');
+    } catch (error) {
+        console.error('Error sending email:', error);
+        throw error; // إعادة رمي الخطأ بعد تسجيله
+    }
 };

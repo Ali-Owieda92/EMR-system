@@ -11,59 +11,77 @@ const generateToken = (id, role) => {
 };
 
 export const registerUser = async (req, res) => {
-    const { name, email, phone, password, role, city, gender, age} = req.body;    
+    const { name, email, phone, password, role, city, gender, age } = req.body;
+
     const existingUser = await User.findOne({ $or: [{ email }, { phone }] });
-    try{
-    if (existingUser) {
-        return res.status(400).json({ message: "User already exists try to login with email or phone" });
-    }
+    try {
+        if (existingUser) {
+            return res.status(400).json({ message: "User already exists try to login with email or phone" });
+        }
 
-    const newUser = new User({
-        name,
-        email,
-        phone,
-        password,
-        role,
-        city,
-        gender,
-        age
-    });
-
-    await newUser.save();
-
-    if (role === "patient") {
-        await Patient.create({
-            user_id: newUser._id,
-            name: newUser.name,
-            email: newUser.email,
-            phone: newUser.phone,
+        const newUser = new User({
+            name,
+            email,
+            phone,
+            password,
+            role,
+            city,
+            gender,
+            age
         });
-    } else if (role === "doctor") {
-        await Doctor.create({
-            user_id: newUser._id,
-            name: newUser.name,
-            email: newUser.email,
-            phone: newUser.phone,
-            specialization: newUser.specialization,
-        });
-    }
-    const token = generateToken(newUser._id, newUser.role);
 
-    res.status(201).json({
-        message: "User registered successfully",
-        token,
-        data: {
-            id: newUser._id,
-            name: newUser.name,
-            email: newUser.email,
-            phone: newUser.phone,
-            role: newUser.role,
-        },
-    });
+        await newUser.save();
+
+        // ✨ إرسال رسالة ترحيبية حسب الوسيلة المتوفرة
+        if (newUser.email) {
+            await sendEmail({
+                to: newUser.email,
+                subject: "Welcome to EMR System",
+                text: `Hello ${newUser.name},\n\nYour account has been successfully registered in the EMR system.`
+            });
+        }
+        
+        if (newUser.phone) {
+            await sendSMS({
+                to: newUser.phone,
+                body: `Hi ${newUser.name}, your EMR account has been successfully created.`
+            });
+        }
+
+        // ✨ إنشاء سجلات إضافية حسب الدور
+        if (role === "patient") {
+            await Patient.create({
+                user_id: newUser._id,
+                chronic_diseases: [],
+                contact_info: { phone },
+            });
+        } else if (role === "doctor") {
+            await Doctor.create({
+                user: newUser._id,
+                specialty: "",
+                experience: 0,
+                hospital: "",
+            });
+        }
+
+        const token = generateToken(newUser._id, newUser.role);
+
+        res.status(201).json({
+            message: "User registered successfully",
+            token,
+            data: {
+                id: newUser._id,
+                name: newUser.name,
+                email: newUser.email,
+                phone: newUser.phone,
+                role: newUser.role,
+            },
+        });
     } catch (error) {
         res.status(500).json({ message: "Server error", error });
     }
 };
+
 
 
 export const loginUser = async (req, res) => {
@@ -113,13 +131,17 @@ export const forgotPassword = async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: "User not found with this email or phone" });
         }
+
         const resetToken = jwt.sign(
             { id: user._id },
             process.env.JWT_SECRET,
             { expiresIn: "15m" } 
         );
-        const resetLink = `http://localhost:5000/reset-password/${resetToken}`;
+
+        const resetLink = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+        
         if (user.email) {
+            console.log(`Sending email to: ${user.email}`);  // إضافة تسجيل في السجل هنا
             await sendEmail({
                 to: user.email,
                 subject: "Password Reset Link",
@@ -127,6 +149,8 @@ export const forgotPassword = async (req, res) => {
             });
         }
         if (user.phone) {
+            console.log(`Sending SMS to: ${user.phone}`);  // إضافة تسجيل في السجل هنا
+
             await sendSMS({
                 to: user.phone,
                 message: `Password Reset: Click here to reset your password: ${resetLink}`,
