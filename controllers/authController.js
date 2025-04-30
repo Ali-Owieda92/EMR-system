@@ -11,10 +11,9 @@ const generateToken = (id, role) => {
 };
 
 export const registerUser = async (req, res) => {
-    const { name, email, phone, password, role, city, gender, age } = req.body;
-
-    const existingUser = await User.findOne({ $or: [{ email }, { phone }] });
     try {
+        const { name, email, phone, password, role, city, gender, age } = req.body;
+        const existingUser = await User.findOne({ $or: [{ email }, { phone }] });
         if (existingUser) {
             return res.status(400).json({ message: "User already exists try to login with email or phone" });
         }
