@@ -120,6 +120,7 @@ export const forgotPassword = async (req, res) => {
         if (!email && !phone) {
             return res.status(400).json({ message: "Please provide email or phone" });
         }
+
         const user = await User.findOne({
             $or: [
                 { email: email?.toLowerCase() },
@@ -134,38 +135,40 @@ export const forgotPassword = async (req, res) => {
         const resetToken = jwt.sign(
             { id: user._id },
             process.env.JWT_SECRET,
-            { expiresIn: "15m" } 
+            { expiresIn: "15m" }
         );
 
         const resetLink = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
-        
+
+        // إرسال بريد إلكتروني إذا كان المستخدم لديه بريد
         if (user.email) {
-            console.log(`Sending email to: ${user.email}`);  // إضافة تسجيل في السجل هنا
             await sendEmail({
                 to: user.email,
                 subject: "Password Reset Link",
                 text: `You requested a password reset. Click the link below to reset your password:\n\n${resetLink}`,
             });
         }
-        if (user.phone) {
-            console.log(`Sending SMS to: ${user.phone}`);  // إضافة تسجيل في السجل هنا
 
+        // إرسال رسالة SMS إذا كان المستخدم لديه رقم هاتف
+        if (user.phone) {
             await sendSMS({
                 to: user.phone,
-                message: `Password Reset: Click here to reset your password: ${resetLink}`,
+                body: `Password Reset: Click here to reset your password: ${resetLink}`,
             });
         }
+
         return res.status(200).json({
             message: "Reset link has been generated",
-            resetLink, 
+            resetLink,
             token: resetToken
         });
-
 
     } catch (error) {
         return res.status(500).json({ message: "Server error", error });
     }
 };
+
+
 
 
 export const resetPassword = async (req, res) => {
