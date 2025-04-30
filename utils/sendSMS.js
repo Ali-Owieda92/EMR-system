@@ -1,3 +1,7 @@
+import twilio from 'twilio';
+
+const client = twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
+
 export const sendSMS = async ({ to, body }) => {
     try {
         await client.messages.create({
@@ -5,9 +9,9 @@ export const sendSMS = async ({ to, body }) => {
             from: process.env.TWILIO_PHONE,
             to,
         });
-        console.log('SMS sent successfully');
+        console.log('✅ SMS sent successfully');
     } catch (error) {
-        console.error('Error sending SMS:', error);
-        throw error; // إعادة رمي الخطأ بعد تسجيله
+        console.error('❌ Error sending SMS:', error);
+        throw error;
     }
 };
