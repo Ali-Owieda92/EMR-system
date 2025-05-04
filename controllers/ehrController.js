@@ -1,4 +1,3 @@
-// controllers/ehrController.js
 import Ehr from "../models/Ehr.js";
 import PDFDocument from "pdfkit";
 import fs from "fs";
@@ -6,143 +5,148 @@ import QRCode from "qrcode";
 
 // ✅ Get EHR by Patient ID
 export const getEhrByPatient = async (req, res) => {
-    try {
-        const { patientId } = req.params;
-        const ehr = await Ehr.findOne({ patient: patientId }).populate("patient", "name phone");
+  try {
+    const { patientId } = req.params;
+    const ehr = await Ehr.findOne({ patient: patientId }).populate("patient", "user_id").populate("doctor", "user_id");
 
-        if (!ehr) {
-            return res.status(404).json({ message: "EHR not found" });
-        }
-
-        res.status(200).json(ehr);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
+    if (!ehr) {
+      return res.status(404).json({ message: "EHR not found" });
     }
+
+    res.status(200).json(ehr);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
 
-// ✅ Add EHR Data
+// ✅ Add EHR Data (doctor only)
 export const addEhrData = async (req, res) => {
-    try {
-        const { patient, chronicDiseases, medications, familyHistory } = req.body;
+  try {
+    const { patient, vitals, diagnosis, medications, labResults } = req.body;
 
-        // Check if EHR already exists
-        const existingEhr = await Ehr.findOne({ patient });
-        if (existingEhr) {
-            return res.status(400).json({ message: "EHR already exists for this patient" });
-        }
-
-        const newEhr = new Ehr({
-            patient,
-            chronicDiseases,
-            medications,
-            familyHistory,
-        });
-
-        await newEhr.save();
-
-        res.status(201).json({ message: "EHR created successfully", ehr: newEhr });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
+    // Only doctors can create
+    if (req.user.role !== "doctor") {
+      return res.status(403).json({ message: "Access denied" });
     }
+
+    const existingEhr = await Ehr.findOne({ patient });
+    if (existingEhr) {
+      return res.status(400).json({ message: "EHR already exists for this patient" });
+    }
+
+    const newEhr = new Ehr({
+      patient,
+      doctor: req.user._id,
+      vitals,
+      diagnosis,
+      medications,
+      labResults,
+    });
+
+    await newEhr.save();
+    res.status(201).json({ message: "EHR created successfully", ehr: newEhr });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
 
 // ✅ Update EHR
 export const updateEhr = async (req, res) => {
-    try {
-        const { patientId } = req.params;
-        const { chronicDiseases, medications, familyHistory } = req.body;
+  try {
+    const { patientId } = req.params;
+    const { vitals, diagnosis, medications, labResults } = req.body;
 
-        const ehr = await Ehr.findOne({ patient: patientId });
+    const ehr = await Ehr.findOne({ patient: patientId });
 
-        if (!ehr) {
-            return res.status(404).json({ message: "EHR not found" });
-        }
+    if (!ehr) return res.status(404).json({ message: "EHR not found" });
 
-        if (chronicDiseases) ehr.chronicDiseases = chronicDiseases;
-        if (medications) ehr.medications = medications;
-        if (familyHistory) ehr.familyHistory = familyHistory;
-
-        await ehr.save();
-
-        res.status(200).json({ message: "EHR updated successfully", ehr });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
+    // Check permissions
+    if (req.user.role !== "doctor" && req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied" });
     }
+
+    ehr.vitals = vitals || ehr.vitals;
+    ehr.diagnosis = diagnosis || ehr.diagnosis;
+    ehr.medications = medications || ehr.medications;
+    ehr.labResults = labResults || ehr.labResults;
+
+    await ehr.save();
+    res.status(200).json({ message: "EHR updated successfully", ehr });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
 
 // ✅ Download EHR as PDF
 export const downloadEhrPdf = async (req, res) => {
-    try {
-        const { patientId } = req.params;
+  try {
+    const { patientId } = req.params;
+    const ehr = await Ehr.findOne({ patient: patientId }).populate("patient", "user_id").populate("doctor", "user_id");
 
-        const ehr = await Ehr.findOne({ patient: patientId }).populate("patient", "name phone");
+    if (!ehr) return res.status(404).json({ message: "No EHR found for this patient" });
 
-        if (!ehr) {
-            return res.status(404).json({ message: "No EHR found for this patient" });
-        }
+    const doc = new PDFDocument();
+    const filename = `ehr_${patientId}_${Date.now()}.pdf`;
+    const filePath = `./uploads/${filename}`;
+    const stream = fs.createWriteStream(filePath);
+    doc.pipe(stream);
 
-        const doc = new PDFDocument();
-        const filename = `ehr_${patientId}_${Date.now()}.pdf`;
-        const filePath = `./uploads/${filename}`;
+    doc.fontSize(20).text('Electronic Health Record', { align: 'center' });
+    doc.moveDown();
 
-        const stream = fs.createWriteStream(filePath);
-        doc.pipe(stream);
+    doc.fontSize(14).text(`Diagnosis: ${ehr.diagnosis || 'N/A'}`);
+    doc.moveDown();
 
-        doc.fontSize(25).text('Electronic Health Record', { align: 'center' });
-        doc.moveDown();
-        doc.fontSize(16).text(`Patient: ${ehr.patient.name}`, { align: 'left' });
-        doc.fontSize(16).text(`Phone: ${ehr.patient.phone}`, { align: 'left' });
-        doc.moveDown();
-
-        if (ehr.chronicDiseases?.length) {
-            doc.fontSize(14).text('Chronic Diseases:', { underline: true });
-            ehr.chronicDiseases.forEach(disease => {
-                doc.fontSize(12).text(`- ${disease}`);
-            });
-            doc.moveDown();
-        }
-
-        if (ehr.medications?.length) {
-            doc.fontSize(14).text('Medications:', { underline: true });
-            ehr.medications.forEach(med => {
-                doc.fontSize(12).text(`- ${med}`);
-            });
-            doc.moveDown();
-        }
-
-        if (ehr.familyHistory) {
-            doc.fontSize(14).text('Family History:', { underline: true });
-            doc.fontSize(12).text(ehr.familyHistory);
-            doc.moveDown();
-        }
-
-        doc.end();
-
-        stream.on('finish', () => {
-            res.download(filePath, filename, (err) => {
-                if (err) {
-                    res.status(500).json({ message: "Error downloading file", error: err });
-                }
-
-                fs.unlink(filePath, (unlinkErr) => {
-                    if (unlinkErr) console.error("Error deleting file:", unlinkErr);
-                });
-            });
-        });
-
-    } catch (err) {
-        res.status(500).json({ message: err.message });
+    if (ehr.vitals) {
+      doc.text('Vitals:', { underline: true });
+      for (const [key, value] of Object.entries(ehr.vitals)) {
+        doc.text(`- ${key}: ${value}`);
+      }
+      doc.moveDown();
     }
+
+    if (ehr.medications?.length) {
+      doc.text('Medications:', { underline: true });
+      ehr.medications.forEach(med => {
+        doc.text(`- ${med.name} | ${med.dosage} | ${med.duration}`);
+      });
+      doc.moveDown();
+    }
+
+    if (ehr.labResults?.length) {
+      doc.text('Lab Results:', { underline: true });
+      ehr.labResults.forEach(test => {
+        doc.text(`- ${test.testName}: ${test.result}`);
+      });
+      doc.moveDown();
+    }
+
+    doc.end();
+
+    stream.on('finish', () => {
+      res.download(filePath, filename, (err) => {
+        if (err) {
+          res.status(500).json({ message: "Error downloading file", error: err });
+        }
+        fs.unlink(filePath, (unlinkErr) => {
+          if (unlinkErr) console.error("Error deleting file:", unlinkErr);
+        });
+      });
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
 
-// ✅ Generate QR Code for EHR link
+// ✅ Generate QR Code
 export const getEhrQrCode = async (req, res) => {
-    try {
-        const { patientId } = req.params;
-        const qrData = `${process.env.CLIENT_URL}/ehr/view/${patientId}`;
-        const qrCodeDataUrl = await QRCode.toDataURL(qrData);
-        res.status(200).json({ qrCode: qrCodeDataUrl });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
+  try {
+    const { patientId } = req.params;
+    const qrData = `${process.env.CLIENT_URL}/ehr/view/${patientId}`;
+    const qrCodeDataUrl = await QRCode.toDataURL(qrData);
+    res.status(200).json({ qrCode: qrCodeDataUrl });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };

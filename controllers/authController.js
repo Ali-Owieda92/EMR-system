@@ -31,20 +31,29 @@ export const registerUser = async (req, res) => {
 
         await newUser.save();
 
-        // ✨ إرسال رسالة ترحيبية حسب الوسيلة المتوفرة
+        // ✨ محاولة إرسال رسالة ترحيبية عبر البريد الإلكتروني
         if (newUser.email) {
-            await sendEmail({
-                to: newUser.email,
-                subject: "Welcome to EMR System",
-                text: `Hello ${newUser.name},\n\nYour account has been successfully registered in the EMR system.`
-            });
+            try {
+                await sendEmail({
+                    to: newUser.email,
+                    subject: "Welcome to EMR System",
+                    text: `Hello ${newUser.name},\n\nYour account has been successfully registered in the EMR system.`
+                });
+            } catch (emailError) {
+                console.error('❌ Error sending email:', emailError.message);  // يمكن تتبع الأخطاء هنا
+            }
         }
-        
+
+        // ✨ محاولة إرسال رسالة ترحيبية عبر الهاتف
         if (newUser.phone) {
-            await sendSMS({
-                to: newUser.phone,
-                body: `Hi ${newUser.name}, your EMR account has been successfully created.`
-            });
+            try {
+                await sendSMS({
+                    to: newUser.phone,
+                    body: `Hi ${newUser.name}, your EMR account has been successfully created.`
+                });
+            } catch (smsError) {
+                console.error('❌ Error sending SMS:', smsError.message);  // يمكن تتبع الأخطاء هنا
+            }
         }
 
         // ✨ إنشاء سجلات إضافية حسب الدور
@@ -77,14 +86,21 @@ export const registerUser = async (req, res) => {
             },
         });
     } catch (error) {
+        console.error('❌ Error during registration:', error.message);
         res.status(500).json({ message: "Server error", error });
     }
 };
 
 
 
+
 export const loginUser = async (req, res) => {
     const { email, phone, password } = req.body;
+
+    // تحقق من وجود الباسورد
+    if (!password || (!email && !phone)) {
+        return res.status(400).json({ message: "Email or phone and password are required" });
+    }
 
     try {
         const user = await User.findOne({
@@ -94,25 +110,31 @@ export const loginUser = async (req, res) => {
             ]
         });
 
-    if (!user) return res.status(401).json({ message: "Invalid email/phone or password" });
+        if (!user || !user.password) {
+            return res.status(401).json({ message: "Invalid email/phone or password" });
+        }
 
-    const isMatch = await user.matchPassword(password);
-    if (!isMatch) return res.status(401).json({ message: "Invalid email/phone or password" });
+        const isMatch = await user.matchPassword(password);
+        if (!isMatch) {
+            return res.status(401).json({ message: "Invalid email/phone or password" });
+        }
 
-    res.json({
-        token: generateToken(user._id, user.role),
-        user: {
-            id: user._id,
-            name: user.name,
-            email: user.email,
-            phone: user.phone,
-            role: user.role,
-        },
+        res.json({
+            token: generateToken(user._id, user.role),
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+                role: user.role,
+            },
         });
     } catch (error) {
-    res.status(500).json({ message: "Server error", error });
+        console.error("Login error:", error);
+        res.status(500).json({ message: "Server error", error });
     }
 };
+
 
 export const forgotPassword = async (req, res) => {
     const { email, phone } = req.body;
@@ -149,14 +171,6 @@ export const forgotPassword = async (req, res) => {
             });
         }
 
-        // إرسال رسالة SMS إذا كان المستخدم لديه رقم هاتف
-        if (user.phone) {
-            await sendSMS({
-                to: user.phone,
-                body: `Password Reset: Click here to reset your password: ${resetLink}`,
-            });
-        }
-
         return res.status(200).json({
             message: "Reset link has been generated",
             resetLink,
@@ -178,17 +192,16 @@ export const resetPassword = async (req, res) => {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user = await User.findById(decoded.id);
-        
+
         if (!user) {
             return res.status(400).json({ message: "User not found or invalid token" });
         }
 
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(newPassword, salt);
-        await user.save();
+        user.password = newPassword; // ❌ لا تشفرها يدويًا
+        await user.save();           // ✅ التشفير سيتم تلقائيًا في pre("save")
 
         res.status(200).json({ message: "Password has been reset successfully" });
     } catch (error) {
         res.status(400).json({ message: "Invalid or expired token", error });
     }
-}; 
+};

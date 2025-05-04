@@ -19,9 +19,15 @@ const ehrSchema = new mongoose.Schema({
     height: Number,
   },
   diagnosis: String,
-  prescriptions: [String],
-  labResults: [String], // URLs or file names
-  medications: [String],
+  medications: [
+    { name: String, dosage: String, duration: String }
+  ],
+  labResults: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'LabTest',
+    }
+  ]
 }, {
   timestamps: true,
 });

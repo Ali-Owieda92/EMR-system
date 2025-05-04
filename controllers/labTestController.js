@@ -1,6 +1,7 @@
 import cloudinary from "../config/cloudinary.js";
 import fs from "fs"; // لحذف الملفات المحلية بعد الرفع
 import LabTest from "../models/LabTest.js";
+import Ehr from "../models/Ehr.js";
 import Patient from "../models/Patient.js";
 
 // دالة رفع التحليل (رفع الملف إلى Cloudinary)
@@ -37,6 +38,11 @@ export const uploadLabTest = async (req, res) => {
       message: "Lab test uploaded successfully",
       data: newLabTest,
     });
+
+    await Ehr.findOneAndUpdate(
+      { patient: patientId },
+      { $push: { labResults: newLabTest._id } }
+    );
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -70,6 +76,11 @@ export const addLabTest = async (req, res) => {
     });
 
     await newLabTest.save();
+
+    await Ehr.findOneAndUpdate(
+      { patient: patientId },
+      { $push: { labResults: newLabTest._id } }
+    );
     res.status(201).json({ message: "Lab test added successfully", newLabTest });
   } catch (error) {
     res.status(500).json({ message: error.message });

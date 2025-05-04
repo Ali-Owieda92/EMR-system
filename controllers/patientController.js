@@ -1,13 +1,24 @@
 import Patient from "../models/Patient.js";
 import User from "../models/User.js";
+import Ehr from "../models/Ehr.js";
 
 export const createPatient = async (req, res) => {
-    const { name, email, phone, gender, chronic_diseases, blood_type, city } = req.body;
+    const { name, email, phone, gender, chronic_diseases, blood_type, city, doctor } = req.body;
 
     try {
         // 🔒 Role check
         if (req.user.role !== "doctor" && req.user.role !== "admin") {
             return res.status(403).json({ message: "Access denied. Only doctors and admins can add patients." });
+        }
+
+        // ✅ Ensure doctor ID is present and valid
+        if (!doctor) {
+            return res.status(400).json({ message: "Doctor ID is required." });
+        }
+
+        const doctorExists = await User.findOne({ _id: doctor, role: "doctor" });
+        if (!doctorExists) {
+            return res.status(404).json({ message: "Assigned doctor not found." });
         }
 
         // 🔍 Check if user exists by email
@@ -24,10 +35,10 @@ export const createPatient = async (req, res) => {
             user = new User({
                 name,
                 email,
-                phone,       
-                gender,      
-                city,        
-                password: "12345678", 
+                phone,
+                gender,
+                city,
+                password: "12345678",
                 role: "patient",
             });
 
@@ -46,6 +57,7 @@ export const createPatient = async (req, res) => {
 
         const newPatient = new Patient({
             user_id: user._id,
+            doctor, // ربط المريض بالطبيب
             chronic_diseases,
             blood_type,
             contact_info: {
@@ -56,6 +68,15 @@ export const createPatient = async (req, res) => {
 
         await newPatient.save();
 
+        const newEhr = new Ehr({
+            patient: newPatient._id,
+            doctor: doctor, // تأكد من إضافة الدكتور هنا
+            chronicDiseases: chronic_diseases || [],
+            medications: [],
+            familyHistory: "",
+        });
+        await newEhr.save();
+
         res.status(201).json({ message: "Patient record created successfully", patient: newPatient });
 
     } catch (error) {
@@ -64,6 +85,7 @@ export const createPatient = async (req, res) => {
     }
 };
 
+
 export const getAllPatients = async (req, res) => {
     try {
         let patients;
@@ -71,8 +93,8 @@ export const getAllPatients = async (req, res) => {
         if (req.user.role === "admin") {
             patients = await Patient.find().populate("user_id", "name email profile_image gender date_of_birth");
         } else if (req.user.role === "doctor") {
-            patients = await Patient.find({ "medical_history.doctor_id": req.user._id })
-                .populate("user_id", "name email profile_image gender date_of_birth");
+            // لاحقًا ممكن نربط بالـ EHR لجلب مرضى الدكتور
+            patients = await Patient.find().populate("user_id", "name email profile_image gender date_of_birth");
         } else {
             return res.status(403).json({ message: "Access denied" });
         }
@@ -82,7 +104,6 @@ export const getAllPatients = async (req, res) => {
         res.status(500).json({ message: "Server error", error });
     }
 };
-
 
 export const getPatientById = async (req, res) => {
     try {
@@ -106,18 +127,14 @@ export const updatePatient = async (req, res) => {
 
         const user = patient.user_id;
 
-        if (req.user.role === "patient" && req.user._id.toString() === patient.user_id._id.toString()) {
+        if (req.user.role === "patient" && req.user._id.toString() === user._id.toString()) {
             const { contact_info } = req.body;
             if (contact_info) patient.contact_info = contact_info;
             if (req.file?.filename) user.profile_image = req.file.filename;
         }
         else if (req.user.role === "doctor") {
-            if (!patient.medical_history.some(record => record.assigned_doctor.toString() === req.user._id.toString())) {
-                return res.status(403).json({ message: "Access denied" });
-            }
-            const { chronic_diseases, medical_history } = req.body;
+            const { chronic_diseases } = req.body;
             if (chronic_diseases) patient.chronic_diseases = chronic_diseases;
-            if (medical_history) patient.medical_history.push(medical_history);
         }
         else if (req.user.role === "admin") {
             Object.assign(patient, req.body);
@@ -147,14 +164,18 @@ export const deletePatient = async (req, res) => {
         res.status(500).json({ message: "Server error", error });
     }
 };
+
 export const getPatientsByDoctor = async (req, res) => {
-    const doctorId = req.user._id;
+    try {
+        // حالياً ما فيش createdBy في الموديل، ممكن إضافة الربط لاحقًا
+        const patients = await Patient.find().populate("user_id", "name email phone");
 
-    const patients = await Patient.find({ createdBy: doctorId }).populate("user_id", "name email phone");
-
-    res.status(200).json({
-        success: true,
-        count: patients.length,
-        data: patients,
-    });
+        res.status(200).json({
+            success: true,
+            count: patients.length,
+            data: patients,
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error });
+    }
 };
