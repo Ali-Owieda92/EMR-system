@@ -107,7 +107,7 @@ export const getAllPatients = async (req, res) => {
 
 export const getPatientById = async (req, res) => {
     try {
-        const patient = await Patient.findById(req.params.id).populate("user_id", "name email gender date_of_birth profile_image");
+        const patient = await Patient.findById(req.params.patientId).populate("user_id", "name email gender date_of_birth profile_image");
         if (!patient) return res.status(404).json({ message: "Patient not found" });
 
         const userId = patient.user_id?._id?.toString();
