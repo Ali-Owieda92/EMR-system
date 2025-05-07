@@ -130,7 +130,7 @@ export const getPatientById = async (req, res) => {
 
 export const updatePatient = async (req, res) => {
     try {
-        const patient = await Patient.findById(req.params.id).populate("user_id");
+        const patient = await Patient.findById(req.params.patientId).populate("user_id");
         if (!patient) return res.status(404).json({ message: "Patient not found" });
 
         const user = patient.user_id;
@@ -162,15 +162,16 @@ export const updatePatient = async (req, res) => {
 
 export const deletePatient = async (req, res) => {
     try {
-        const patient = await Patient.findById(req.params.id).populate("user_id");
+        const patient = await Patient.findById(req.params.patientId).populate("user_id");
         if (!patient) return res.status(404).json({ message: "Patient not found" });
 
         const userId = patient.user_id?._id?.toString();
         const requesterId = req.user?._id?.toString();
         const isAdmin = req.user?.role === "admin";
+        const isDoctor = req.user?.role === "doctor";
         const isOwner = userId && requesterId && userId === requesterId;
 
-        if (!isAdmin && !isOwner) {
+        if (!isAdmin && !isOwner && isDoctor) {
             return res.status(403).json({ message: "Access denied" });
         }
 
