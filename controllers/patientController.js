@@ -130,34 +130,46 @@ export const getPatientById = async (req, res) => {
 
 export const updatePatient = async (req, res) => {
     try {
-        const patient = await Patient.findById(req.params.patientId).populate("user_id");
-        if (!patient) return res.status(404).json({ message: "Patient not found" });
-
-        const user = patient.user_id;
-        const userId = user?._id?.toString();
-        const requesterId = req.user?._id?.toString();
-
-        if (req.user.role === "patient" && userId === requesterId) {
-            const { contact_info } = req.body;
-            if (contact_info) patient.contact_info = contact_info;
-            if (req.file?.filename) user.profile_image = req.file.filename;
-        } else if (req.user.role === "doctor") {
-            const { chronic_diseases } = req.body;
-            if (chronic_diseases) patient.chronic_diseases = chronic_diseases;
-        } else if (req.user.role === "admin") {
-            Object.assign(patient, req.body);
-            if (req.file?.filename) user.profile_image = req.file.filename;
-        } else {
-            return res.status(403).json({ message: "Access denied" });
-        }
-
-        await user.save();
-        await patient.save();
-        res.json({ message: "Patient updated successfully", patient });
+      const patient = await Patient.findById(req.params.patientId).populate("user_id");
+      if (!patient) return res.status(404).json({ message: "Patient not found" });
+  
+      const user = patient.user_id;
+      if (!user) return res.status(404).json({ message: "Associated user not found" });
+  
+      const userId = user._id.toString();
+      const requesterId = req.user?._id?.toString();
+  
+      if (req.user.role === "patient" && userId === requesterId) {
+        const { contact_info } = req.body;
+        if (contact_info) patient.contact_info = contact_info;
+        if (req.file?.filename) user.profile_image = req.file.filename;
+  
+      } else if (req.user.role === "doctor") {
+        // تأكد أن الطبيب فعلاً متابع لهذا المريض إذا كان فيه علاقة
+        const { chronic_diseases } = req.body;
+        if (chronic_diseases) patient.chronic_diseases = chronic_diseases;
+  
+      } else if (req.user.role === "admin") {
+        const allowedFields = ['contact_info', 'chronic_diseases', 'blood_type', 'medical_history'];
+        allowedFields.forEach(field => {
+          if (req.body[field] !== undefined) {
+            patient[field] = req.body[field];
+          }
+        });
+        if (req.file?.filename) user.profile_image = req.file.filename;
+  
+      } else {
+        return res.status(403).json({ message: "Access denied" });
+      }
+  
+      await user.save();
+      await patient.save();
+  
+      res.json({ message: "Patient updated successfully", patient });
     } catch (error) {
-        res.status(500).json({ message: "Server error", error: error.message });
+      res.status(500).json({ message: "Server error", error: error.message });
     }
-};
+  };  
 
 
 export const deletePatient = async (req, res) => {
