@@ -110,15 +110,23 @@ export const getPatientById = async (req, res) => {
         const patient = await Patient.findById(req.params.id).populate("user_id", "name email gender date_of_birth profile_image");
         if (!patient) return res.status(404).json({ message: "Patient not found" });
 
-        if (req.user.role !== "admin" && req.user.role !== "doctor" && req.user._id.toString() !== patient.user_id._id.toString()) {
+        const userId = patient.user_id?._id?.toString();
+        const requesterId = req.user?._id?.toString();
+
+        const isAdmin = req.user?.role === "admin";
+        const isDoctor = req.user?.role === "doctor";
+        const isOwner = userId && requesterId && userId === requesterId;
+
+        if (!isAdmin && !isDoctor && !isOwner) {
             return res.status(403).json({ message: "Access denied" });
         }
 
         res.json(patient);
     } catch (error) {
-        res.status(500).json({ message: "Server error", error });
+        res.status(500).json({ message: "Server error", error: error.message });
     }
 };
+
 
 export const updatePatient = async (req, res) => {
     try {
@@ -126,17 +134,17 @@ export const updatePatient = async (req, res) => {
         if (!patient) return res.status(404).json({ message: "Patient not found" });
 
         const user = patient.user_id;
+        const userId = user?._id?.toString();
+        const requesterId = req.user?._id?.toString();
 
-        if (req.user.role === "patient" && req.user._id.toString() === user._id.toString()) {
+        if (req.user.role === "patient" && userId === requesterId) {
             const { contact_info } = req.body;
             if (contact_info) patient.contact_info = contact_info;
             if (req.file?.filename) user.profile_image = req.file.filename;
-        }
-        else if (req.user.role === "doctor") {
+        } else if (req.user.role === "doctor") {
             const { chronic_diseases } = req.body;
             if (chronic_diseases) patient.chronic_diseases = chronic_diseases;
-        }
-        else if (req.user.role === "admin") {
+        } else if (req.user.role === "admin") {
             Object.assign(patient, req.body);
             if (req.file?.filename) user.profile_image = req.file.filename;
         } else {
@@ -147,23 +155,34 @@ export const updatePatient = async (req, res) => {
         await patient.save();
         res.json({ message: "Patient updated successfully", patient });
     } catch (error) {
-        res.status(500).json({ message: "Server error", error });
+        res.status(500).json({ message: "Server error", error: error.message });
     }
 };
 
+
 export const deletePatient = async (req, res) => {
     try {
-        const patient = await Patient.findById(req.params.id);
+        const patient = await Patient.findById(req.params.id).populate("user_id");
         if (!patient) return res.status(404).json({ message: "Patient not found" });
 
-        await User.findByIdAndDelete(patient.user_id);
+        const userId = patient.user_id?._id?.toString();
+        const requesterId = req.user?._id?.toString();
+        const isAdmin = req.user?.role === "admin";
+        const isOwner = userId && requesterId && userId === requesterId;
+
+        if (!isAdmin && !isOwner) {
+            return res.status(403).json({ message: "Access denied" });
+        }
+
+        await User.findByIdAndDelete(userId);
         await patient.deleteOne();
 
         res.json({ message: "Patient record deleted successfully" });
     } catch (error) {
-        res.status(500).json({ message: "Server error", error });
+        res.status(500).json({ message: "Server error", error: error.message });
     }
 };
+
 
 export const getPatientsByDoctor = async (req, res) => {
     try {
