@@ -17,6 +17,6 @@ router.get("/all", protect, authorize("doctor", "admin"), getAllPatients);
 router.get("/doctor", protect, authorize("doctor"), getPatientsByDoctor); 
 router.get("/:patientId", protect, getPatientById);   
 router.put("/update/:patientId", protect, upload.single("profilePhoto"), updatePatient);
-router.delete("/delete/:patientId", protect, authorize("admin"), deletePatient);
+router.delete("/delete/:patientId", protect, deletePatient);
 
 export default router;

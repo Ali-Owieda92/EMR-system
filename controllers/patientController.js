@@ -172,29 +172,35 @@ export const updatePatient = async (req, res) => {
   };  
 
 
-export const deletePatient = async (req, res) => {
+  export const deletePatient = async (req, res) => {
     try {
         const patient = await Patient.findById(req.params.patientId).populate("user_id");
         if (!patient) return res.status(404).json({ message: "Patient not found" });
+        
+        const user = patient.user_id;
+        if (!user) return res.status(404).json({ message: "Associated user not found" });
 
-        const userId = patient.user_id?._id?.toString();
-        const requesterId = req.user?._id?.toString();
-        const isAdmin = req.user?.role === "admin";
-        const isDoctor = req.user?.role === "doctor";
-        const isOwner = userId && requesterId && userId === requesterId;
+        const userId = user._id.toString();
+        const requesterId = req.user._id.toString();
+        const requesterRole = req.user.role;
 
-        if (!isAdmin && !isOwner && isDoctor) {
-            return res.status(403).json({ message: "Access denied" });
+        const isAdmin = requesterRole === "admin";
+        const isOwner = userId === requesterId;
+
+        // فقط المريض نفسه أو الأدمن يمكنه الحذف
+        if (!isAdmin && !isOwner) {
+            return res.status(403).json({ message: "Forbidden: Access denied" });
         }
 
-        await User.findByIdAndDelete(userId);
         await patient.deleteOne();
+        await User.findByIdAndDelete(userId);
 
         res.json({ message: "Patient record deleted successfully" });
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
     }
 };
+
 
 
 export const getPatientsByDoctor = async (req, res) => {
